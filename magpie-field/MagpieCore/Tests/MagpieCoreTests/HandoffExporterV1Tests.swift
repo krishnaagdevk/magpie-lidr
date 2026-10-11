@@ -122,6 +122,21 @@ final class HandoffExporterV1Tests: XCTestCase {
             XCTAssertEqual(actual.index, expected.index)
             XCTAssertEqual(actual.name, expected.name)
         }
+
+        // 9. Stable encoded byte output (WO-11)
+        let encodedData = try HandoffExporterV1.exportJSONData(from: editedPlan)
+        XCTAssertFalse(encodedData.isEmpty)
+        let roundTripDecoded = try decoder.decode(HandoffExporterV1.ExportPayload.self, from: encodedData)
+        XCTAssertEqual(roundTripDecoded.walls.count, expectedPayload.walls.count)
+        XCTAssertEqual(roundTripDecoded.doors.count, expectedPayload.doors.count)
+        XCTAssertEqual(roundTripDecoded.windows.count, expectedPayload.windows.count)
+        XCTAssertEqual(roundTripDecoded.openings.count, expectedPayload.openings.count)
+        XCTAssertEqual(roundTripDecoded.objects.count, expectedPayload.objects.count)
+        XCTAssertEqual(roundTripDecoded.sections.count, expectedPayload.sections.count)
+        XCTAssertEqual(roundTripDecoded.stories.count, expectedPayload.stories.count)
+
+        let reEncodedData = try HandoffExporterV1.exportJSONData(from: editedPlan)
+        XCTAssertEqual(encodedData, reEncodedData, "Encoded handoff bytes must be deterministic and stable across multiple exports")
     }
 
     func testValidationRejectsDuplicateIdentifiers() {

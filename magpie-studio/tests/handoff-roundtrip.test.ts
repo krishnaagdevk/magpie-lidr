@@ -1,3 +1,11 @@
+/**
+ * Web-side mirror & contract parity check for Handoff v1 schema.
+ *
+ * NOTE: This test validates TypeScript import/export schema conformance against
+ * fixtures; it does NOT exercise the Swift HandoffExporterV1 implementation.
+ * The authoritative exporter round-trip test is MagpieCoreTests/HandoffExporterV1Tests.swift.
+ */
+
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { importRoomPlanFloors } from '$lib/utils/roomplanImport';
@@ -139,7 +147,7 @@ function exportHandoffFromPlan(native: any) {
   };
 }
 
-describe('T-603 Handoff round-trip verification', () => {
+describe('Web-side handoff parity check (mirror of HandoffExporterV1)', () => {
   it('encodes handoff-plan.json to match handoff-roomplan.json exactly', () => {
     const actual = exportHandoffFromPlan(plan);
 
