@@ -68,12 +68,12 @@ public struct PackageBuilder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
-        let planData = try HandoffExporterV1.export(plan: plan)
+        let planData = try HandoffExporterV1.exportJSONData(from: plan)
         guard let planString = String(data: planData, encoding: .utf8) else {
             throw NSError(domain: "PackageBuilder", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode plan.json"])
         }
 
-        let measurementsData = try MeasurementTableExporter.export(payload: measurements)
+        let measurementsData = try MeasurementTableExporter.exportJSONData(payload: measurements)
         guard let measurementsString = String(data: measurementsData, encoding: .utf8) else {
             throw NSError(domain: "PackageBuilder", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to encode measurements.json"])
         }

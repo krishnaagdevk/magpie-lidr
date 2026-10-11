@@ -34,9 +34,9 @@ final class MagpieCoreExtendedTests: XCTestCase {
 
     func testKitchenTagValidationAgainstPlan() {
         let wall = PlanWall(
-            id: "wall-1",
-            transform: Mat4.identity,
-            dimensions: Vec3(x: 3.5, y: 2.7, z: 0.15)
+            identifier: "wall-1",
+            dimensions: Vec3(x: 3.5, y: 2.7, z: 0.15),
+            transform: Mat4.identity
         )
         let plan = EditedPlan(walls: [wall])
 
@@ -85,25 +85,31 @@ final class MagpieCoreExtendedTests: XCTestCase {
     // MARK: - T-606 PackageBuilder Tests
     func testPackageBuilderAssembly() throws {
         let wall = PlanWall(
-            id: "w-01",
-            transform: Mat4.translation(x: 1, y: 0, z: 1),
-            dimensions: Vec3(x: 3.0, y: 2.7, z: 0.15)
+            identifier: "w-01",
+            dimensions: Vec3(x: 3.0, y: 2.7, z: 0.15),
+            transform: Mat4.translation(x: 1, y: 0, z: 1)
         )
         let plan = EditedPlan(walls: [wall])
 
         let payload = MeasurementsPayload(
             siteId: "SITE-PKG-01",
             workerName: "Test Engineer",
+            capturedAt: "2026-03-30T10:00:00Z",
+            deviceModel: "iPhone 15 Pro",
+            appVersion: "1.0.0",
             dimensions: [
                 Measurement(
-                    name: "Wall 1 Length",
+                    id: "dim-1",
+                    kind: "wall",
+                    label: "Wall 1 Length",
                     valueMm: 3000,
                     valueScannedMm: 3000,
                     provenance: .scanned,
                     critical: true,
                     toleranceMm: 10
                 )
-            ]
+            ],
+            validation: ValidationBlock()
         )
 
         let pkg = try PackageBuilder.build(plan: plan, measurements: payload, title: "Test Unit")

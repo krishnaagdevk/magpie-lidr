@@ -26,42 +26,42 @@ final class RoomPolygonTests: XCTestCase {
         // Define a 4-wall rectangle (4m by 3m)
         // Wall 1: along x axis at y=0, length=4, center=(2, 0)
         let w1 = PlanWall(
-            id: "wall-1",
-            transform: Mat4.translation(x: 2, y: 0, z: 0),
-            dimensions: Vec3(x: 4, y: 2.7, z: 0.15)
+            identifier: "wall-1",
+            dimensions: Vec3(x: 4, y: 2.7, z: 0.15),
+            transform: Mat4.translation(x: 2, y: 0, z: 0)
         )
         // Wall 2: along z axis at x=4, length=3, center=(4, 1.5), rotated 90 deg
         let w2 = PlanWall(
-            id: "wall-2",
+            identifier: "wall-2",
+            dimensions: Vec3(x: 3, y: 2.7, z: 0.15),
             transform: Mat4(elements: [
                 0, 0, 1, 0,
                 0, 1, 0, 0,
                 -1, 0, 0, 0,
                 4, 0, 1.5, 1
-            ]),
-            dimensions: Vec3(x: 3, y: 2.7, z: 0.15)
+            ])
         )
         // Wall 3: along x axis at z=3, length=4, center=(2, 3), rotated 180 deg
         let w3 = PlanWall(
-            id: "wall-3",
+            identifier: "wall-3",
+            dimensions: Vec3(x: 4, y: 2.7, z: 0.15),
             transform: Mat4(elements: [
                 -1, 0, 0, 0,
                 0, 1, 0, 0,
                 0, 0, -1, 0,
                 2, 0, 3, 1
-            ]),
-            dimensions: Vec3(x: 4, y: 2.7, z: 0.15)
+            ])
         )
         // Wall 4: along z axis at x=0, length=3, center=(0, 1.5), rotated 270 deg
         let w4 = PlanWall(
-            id: "wall-4",
+            identifier: "wall-4",
+            dimensions: Vec3(x: 3, y: 2.7, z: 0.15),
             transform: Mat4(elements: [
                 0, 0, -1, 0,
                 0, 1, 0, 0,
                 1, 0, 0, 0,
                 0, 0, 1.5, 1
-            ]),
-            dimensions: Vec3(x: 3, y: 2.7, z: 0.15)
+            ])
         )
 
         let plan = EditedPlan(walls: [w1, w2, w3, w4])
@@ -79,29 +79,29 @@ final class RoomPolygonTests: XCTestCase {
     func testOpenRoomDetectsGapAndFlagsIncomplete() {
         // Missing wall 4 (only walls 1, 2, 3)
         let w1 = PlanWall(
-            id: "wall-1",
-            transform: Mat4.translation(x: 2, y: 0, z: 0),
-            dimensions: Vec3(x: 4, y: 2.7, z: 0.15)
+            identifier: "wall-1",
+            dimensions: Vec3(x: 4, y: 2.7, z: 0.15),
+            transform: Mat4.translation(x: 2, y: 0, z: 0)
         )
         let w2 = PlanWall(
-            id: "wall-2",
+            identifier: "wall-2",
+            dimensions: Vec3(x: 3, y: 2.7, z: 0.15),
             transform: Mat4(elements: [
                 0, 0, 1, 0,
                 0, 1, 0, 0,
                 -1, 0, 0, 0,
                 4, 0, 1.5, 1
-            ]),
-            dimensions: Vec3(x: 3, y: 2.7, z: 0.15)
+            ])
         )
         let w3 = PlanWall(
-            id: "wall-3",
+            identifier: "wall-3",
+            dimensions: Vec3(x: 4, y: 2.7, z: 0.15),
             transform: Mat4(elements: [
                 -1, 0, 0, 0,
                 0, 1, 0, 0,
                 0, 0, -1, 0,
                 2, 0, 3, 1
-            ]),
-            dimensions: Vec3(x: 4, y: 2.7, z: 0.15)
+            ])
         )
 
         let plan = EditedPlan(walls: [w1, w2, w3])
