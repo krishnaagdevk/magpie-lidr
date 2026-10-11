@@ -6,9 +6,10 @@ import { planStatistics } from '$lib/utils/planStatistics';
 import { prepareLibraryRestore } from './libraryRestore';
 import type { DetailKind } from '$lib/models/types';
 import { upgradeLegacyFurnitureCategories } from '$lib/utils/legacyFurnitureCategories';
+import { loadMeasurementsPayload } from '$lib/stores/measurements';
 
-type PackageState = { version: 1; furnitureCategoriesVersion?: 1; native: Record<string, any>; mapping: PackageMapping; assets: Record<string, string> };
-const docs = ['manifest.json', 'plan.json', 'web.json', 'baseline.json', 'mapping.json'];
+type PackageState = { version: 1; furnitureCategoriesVersion?: 1; native: Record<string, any>; mapping: PackageMapping; assets: Record<string, string>; measurements?: Record<string, any> };
+const docs = ['manifest.json', 'plan.json', 'web.json', 'baseline.json', 'mapping.json', 'measurements.json'];
 const reservedAssets = new Set(['plan.json', 'room.json', 'room.usdz', 'session.json', 'manifest.json', 'info.json', 'thumbnail.jpg']);
 function validateLocalImages(project: Project) {
   const images = [...project.floors.flatMap(f => f.backgroundImage ? [f.backgroundImage.dataUrl] : []), ...(project.customEntourage ?? []).map(item => item.dataUrl)];
@@ -101,13 +102,25 @@ export function projectPackageBytes(value: Project): Uint8Array {
     'manifest.json': jsonBytes({ format: 'openplan3d-project', version: 1, producer: 'web', title: project.name }),
     'plan.json': jsonBytes(plan), 'web.json': jsonBytes(project),
     'baseline.json': jsonBytes({ ...planWithoutStatistics, openplanItemDetailsVersion: 1, openplanFurnitureCategoriesVersion: 1, openplanUnderlayFloorId: underlayFloorId, openplanAssetChecksums: Object.fromEntries(Object.entries(assets).map(([path, data]) => [path, crc32(data)])) }),
-    'mapping.json': jsonBytes({ entries: mapping }), ...assets,
+    'mapping.json': jsonBytes({ entries: mapping }),
+    ...(state?.measurements ? { 'measurements.json': jsonBytes(state.measurements) } : {}),
+    ...assets,
   });
 }
 export function readProjectPackage(bytes: Uint8Array): { project: Project; assets: number; warnings: string[] } {
   const files = readPackageZip(bytes), manifest = packageJSON(files['manifest.json']);
   if (manifest.format !== 'openplan3d-project' || manifest.version !== 1 || !['web', 'ios'].includes(manifest.producer) || typeof manifest.title !== 'string' || manifest.title.length > 1000) packageError('Unsupported manifest. Choose an OpenPlan3D project package, not a capture dataset or library backup.');
   for (const name of Object.keys(files)) if (!docs.includes(name) && (!name.startsWith('assets/') || reservedAssets.has(name.slice(7).split('/')[0].toLowerCase()))) packageError(`Unrecognized package file: ${name}.`);
+  let packageMeasurements: Record<string, any> | undefined;
+  if (files['measurements.json']) {
+    try {
+      const decoded = new TextDecoder().decode(files['measurements.json']);
+      loadMeasurementsPayload(decoded);
+      packageMeasurements = packageJSON(files['measurements.json']);
+    } catch (e) {
+      console.warn('Failed to parse package measurements.json:', e);
+    }
+  }
   const plan = validatePackagePlan(packageJSON(files['plan.json']));
   const assets = Object.fromEntries(Object.entries(files).filter(([name]) => name.startsWith('assets/')));
   for (const filename of nativeAssetNames(plan)) if (!assets[`assets/${filename}`]) packageError(`Missing attachment: ${filename}.`);
@@ -162,7 +175,14 @@ export function readProjectPackage(bytes: Uint8Array): { project: Project; asset
   // Rebuild identities for the current native plan, retaining source web IDs.
   const resolved = webToNative(project, plan, mapping);
   for (const filename of nativeAssetNames(resolved.plan)) if (!assets[`assets/${filename}`]) packageError(`Missing attachment: ${filename}.`);
-  (project as any).projectPackage = { version: 1, furnitureCategoriesVersion: 1, native: plan, mapping: resolved.mapping, assets: Object.fromEntries(Object.entries(assets).map(([name, data]) => [name, encode64(data)])) } satisfies PackageState;
+  (project as any).projectPackage = {
+    version: 1,
+    furnitureCategoriesVersion: 1,
+    native: plan,
+    mapping: resolved.mapping,
+    assets: Object.fromEntries(Object.entries(assets).map(([name, data]) => [name, encode64(data)])),
+    ...(packageMeasurements ? { measurements: packageMeasurements } : {})
+  } satisfies PackageState;
   return { project: readProject(project), assets: Object.keys(assets).length, warnings: [PACKAGE_NOTICE, ...(plan.underlay && !underlayBackground(plan, assets) ? ['The tracing image format is retained for iPhone but cannot be previewed here.'] : [])] };
 }
 export async function prepareProjectPackage(file: File) {

@@ -18,10 +18,7 @@
   });
 
   function formatMm(valMm: number): string {
-    if (settings.units === 'millimetres') {
-      return `${Math.round(valMm)} mm`;
-    }
-    // formatLength expects cm
+    // formatLength expects cm; valMm / 10 converts mm to cm
     return formatLength(valMm / 10, settings.units);
   }
 </script>

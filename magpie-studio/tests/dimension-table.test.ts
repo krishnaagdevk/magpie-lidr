@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { get } from 'svelte/store';
 import {
   measurementsStore,
@@ -7,6 +8,8 @@ import {
   type MeasurementsPayload,
 } from '$lib/stores/measurements';
 import { projectSettings, formatLength } from '$lib/stores/settings';
+import { readProjectPackage } from '$lib/services/projectPackage';
+import { writePackageZip, jsonBytes } from '$lib/utils/projectPackageZip';
 
 const samplePayload: MeasurementsPayload = {
   measurementsVersion: 1,
@@ -140,7 +143,7 @@ describe('T-803 — Dimension Table and Measurements Store', () => {
 
     // Test millimetres formatting
     projectSettings.update(s => ({ ...s, units: 'millimetres' }));
-    expect(`${Math.round(wallDim.valueMm)} mm`).toBe('3600 mm');
+    expect(formatLength(wallDim.valueMm / 10, 'millimetres')).toBe('3600 mm');
 
     // Test metric (cm / m) formatting
     projectSettings.update(s => ({ ...s, units: 'metric' }));
@@ -157,5 +160,43 @@ describe('T-803 — Dimension Table and Measurements Store', () => {
     expect(failedDim.toleranceMm).toBe(5);
     expect(store.validation.gateResult).toBe('fail');
     expect(store.validation.passRate).toBe(0.5);
+  });
+
+  it('imports package containing measurements.json and populates store with tape and scanned provenance', () => {
+    const plan = JSON.parse(readFileSync('tests/fixtures/handoff-plan.json', 'utf8'));
+    const packageFiles = {
+      'manifest.json': jsonBytes({ format: 'openplan3d-project', version: 1, producer: 'ios', title: 'Imported Site' }),
+      'plan.json': jsonBytes(plan),
+      'measurements.json': jsonBytes(samplePayload)
+    };
+    const packageZip = writePackageZip(packageFiles);
+
+    // Ensure store is clean prior to import
+    clearMeasurements();
+    expect(get(measurementsStore)).toBeNull();
+
+    // Import package fixture
+    const result = readProjectPackage(packageZip);
+    expect(result.project).toBeDefined();
+
+    // Verify store is populated from package sidecar
+    const populated = get(measurementsStore);
+    expect(populated).not.toBeNull();
+    expect(populated?.siteId).toBe('site-kitchen-101');
+    expect(populated?.dimensions).toHaveLength(3);
+
+    // Verify tape row provenance 'tape' and scanned row provenance 'scanned'
+    const tapeItem = populated?.dimensions.find(d => d.provenance === 'tape');
+    const scannedItem = populated?.dimensions.find(d => d.provenance === 'scanned');
+
+    expect(tapeItem).toBeDefined();
+    expect(tapeItem?.provenance).toBe('tape');
+    expect(tapeItem?.label).toBe('North Wall Cabinet Run');
+    expect(tapeItem?.valueMm).toBe(3600);
+
+    expect(scannedItem).toBeDefined();
+    expect(scannedItem?.provenance).toBe('scanned');
+    expect(scannedItem?.label).toBe('East Wall');
+    expect(scannedItem?.valueMm).toBe(2800);
   });
 });
