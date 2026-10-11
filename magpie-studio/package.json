@@ -1,14 +1,10 @@
 {
-	"name": "open3dfloorplan",
+	"name": "magpie-studio",
 	"private": true,
-	"version": "0.9.0",
-	"description": "Free open source 2D/3D floor plan editor — design in 2D, preview in 3D, all in your browser",
-	"author": "theLodgeStudio",
+	"version": "0.1.0",
+	"description": "Magpie Studio — Certified measurements, handoff viewer, and floor plan editor",
+	"author": "Magpie",
 	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/theLodgeBots/open3dFloorplan.git"
-	},
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -23,8 +19,7 @@
 		"benchmark:viewer": "playwright test --config=playwright.benchmark.config.ts",
 		"benchmark:fixtures": "node tooling/render-fixtures.mjs",
 		"catalog:manifest": "node tooling/catalog-manifest.mjs",
-		"catalog:check": "node tooling/catalog-manifest.mjs --check",
-		"build:render-lab": "vite build --config tooling/render-lab-site/vite.config.ts"
+		"catalog:check": "node tooling/catalog-manifest.mjs --check"
 	},
 	"devDependencies": {
 		"@playwright/test": "1.63.0",
@@ -50,7 +45,6 @@
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"svg-pathdata": "6.0.3",
-		"three-gpu-pathtracer": "0.0.24",
 		"three-mesh-bvh": "0.9.10"
 	},
 	"overrides": {

@@ -2,14 +2,10 @@
   import { t, locale, type TranslationKey } from '$lib/i18n';
   import { furnitureName } from '$lib/i18n/furnitureNames';
   import { catalogCategoryLabels } from '$lib/i18n/catalogCategories';
-  import { aiRenderLabels } from '$lib/i18n/aiRenderLabels';
-  import { aiRenderMessages } from '$lib/i18n/aiRenderMessages';
-  import { hasOpenModal } from '$lib/utils/modalDialog';
+
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { openAISettings, setOpenAIModel } from '$lib/stores/aiKeys';
-  import { generateOpenAIRenderImage, validateOpenAIConfig, getEffectiveModel, normalizeBaseUrl } from '$lib/utils/openaiClient';
-  import OpenAIModelPicker from '$lib/components/ai/OpenAIModelPicker.svelte';
+  import { hasOpenModal } from '$lib/utils/modalDialog';
   import { activeFloor, currentProject, selectedElementId } from '$lib/stores/project';
   import type { Floor, Wall, Door, Window as Win, Stair } from '$lib/models/types';
   import { getWallStartHeight, getWallEndHeight } from '$lib/models/types';
@@ -129,148 +125,6 @@
   let cameraPreviewDirty = $state(false);
   let cameraXrayWalls = $state(false);
   let previewDragStart: { x: number; y: number; yaw: number; pitch: number } | null = null;
-  let aiRenderOpen = $state(false);
-  let aiRendering = $state(false);
-  let aiRenderResult = $state<string | null>(null);
-  let aiRenderError = $state<string | null>(null);
-  let aiRenderStyle = $state('photorealistic');
-  let aiRenderLighting = $state('natural daylight');
-  let aiRenderMood = $state('warm and inviting');
-  let aiRenderExtra = $state('');
-  const STYLE_OPTIONS = ['photorealistic', 'architectural visualization', 'interior design magazine', 'minimalist', 'scandinavian', 'industrial', 'mid-century modern', 'luxury'];
-  const LIGHTING_OPTIONS = ['natural daylight', 'warm afternoon', 'golden hour', 'soft ambient', 'dramatic shadows', 'bright and airy', 'moody evening', 'studio lighting'];
-  const MOOD_OPTIONS = ['warm and inviting', 'clean and modern', 'cozy', 'elegant', 'rustic charm', 'sophisticated', 'relaxed', 'vibrant'];
-  let aiProvider = $state<'gemini' | 'openai'>('gemini');
-  let aiModel = $state('gemini-2.5-flash-image');
-  const AI_MODELS = [
-    { id: 'gemini-2.5-flash-image', name: 'Nano Banana (2.5 Flash)', desc: 'Fast & efficient image gen ✓' },
-    { id: 'gemini-3-pro-image-preview', name: 'Nano Banana Pro (3 Pro)', desc: 'Best quality, thinking, up to 4K ✓' },
-  ];
-  let openaiModel = $state('');
-  let renderController: AbortController | null = null;
-
-  function cancelAIRender() {
-    if (!renderController) return;
-    renderController.abort(); renderController = null; aiRendering = false;
-    aiRenderError = 'Request cancelled. The provider may still finish and charge for work already started.';
-  }
-
-  function saveRenderModel() {
-    try { setOpenAIModel(openaiModel); }
-    catch { aiRenderError = 'Browser storage is unavailable. This model will be used for this render only.'; }
-  }
-
-  function providerDestination(): string {
-    try { return normalizeBaseUrl($openAISettings.baseUrl); }
-    catch { return 'Invalid provider URL. Update Settings → AI.'; }
-  }
-
-  function buildAIPrompt(): string {
-    let prompt = `Transform this interior 3D floor plan render into a ${aiRenderStyle} image. `;
-    prompt += `Lighting: ${aiRenderLighting}. Mood: ${aiRenderMood}. `;
-    prompt += `Keep the exact same room geometry, furniture placement, and camera angle. `;
-    prompt += `Add realistic materials, textures, shadows, and reflections. `;
-    prompt += `Make walls, floors, and furniture look like real materials (wood, fabric, metal, etc). `;
-    if (aiRenderExtra.trim()) prompt += aiRenderExtra.trim() + ' ';
-    prompt += `Do NOT change the room layout, furniture positions, or camera perspective.`;
-    return prompt;
-  }
-
-  /** Capture scene from interior camera as base64 PNG */
-  function captureSceneBase64(width: number, height: number): string {
-    updateInteriorCamera();
-    const offRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    offRenderer.setSize(width, height);
-    offRenderer.shadowMap.enabled = true;
-    offRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    offRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-    try {
-      return withInteriorScene(() => {
-        offRenderer.render(scene, interiorCamera!);
-        return offRenderer.domElement.toDataURL('image/png');
-      }, false);
-    } finally {
-      releaseRenderer(offRenderer);
-    }
-  }
-
-  async function runAIRender() {
-    if (!scene || !interiorCamera || aiRendering) return;
-    const controller = new AbortController();
-    renderController = controller; aiRendering = true;
-    aiRenderResult = null; aiRenderError = null;
-    try {
-      const result = aiProvider === 'gemini' ? await runGeminiRender(controller.signal) : await runOpenAIRender(controller.signal);
-      if (renderController === controller) aiRenderResult = result;
-    } catch (error) {
-      if (renderController === controller) aiRenderError = error instanceof Error ? error.message : 'Rendering failed.';
-    } finally {
-      if (renderController === controller) { aiRendering = false; renderController = null; }
-    }
-  }
-
-  async function runGeminiRender(signal: AbortSignal): Promise<string> {
-    const geminiKey = localStorage.getItem('o3d_gemini_key');
-    if (!geminiKey) {
-      throw new Error('Please add your Gemini API key in Settings → AI first.');
-    }
-
-    const imageDataUrl = captureSceneBase64(1024, 576);
-    const base64Image = imageDataUrl.split(',')[1];
-    const prompt = buildAIPrompt();
-
-    const requestBody: any = {
-      contents: [{
-        parts: [
-          { inlineData: { mimeType: 'image/png', data: base64Image } },
-          { text: prompt }
-        ]
-      }],
-      generationConfig: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      }
-    };
-    requestBody.generationConfig.imageConfig = { aspectRatio: '16:9' };
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${geminiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.any([signal, AbortSignal.timeout(180_000)]),
-      credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error',
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`API error: ${response.status} — ${err}`);
-    }
-
-    const data = await response.json();
-    const parts = data.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'));
-    if (imagePart) {
-      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    } else {
-      const textPart = parts.find((p: any) => p.text && !p.thought);
-      throw new Error(textPart?.text || 'No image returned. Try a different model or prompt.');
-    }
-  }
-
-  async function runOpenAIRender(signal: AbortSignal): Promise<string> {
-    const config = { ...get(openAISettings), model: openaiModel };
-    validateOpenAIConfig(config);
-    const imageDataUrl = captureSceneBase64(1024, 576);
-    return generateOpenAIRenderImage(config, imageDataUrl.split(',')[1], buildAIPrompt(), fetch, signal);
-  }
-
-  function downloadAIRender() {
-    if (!aiRenderResult) return;
-    const link = document.createElement('a');
-    const projectName = get(currentProject)?.name ?? 'floorplan';
-    link.download = `${projectName}-ai-render.png`;
-    link.href = aiRenderResult;
-    link.click();
-  }
 
   /** Move camera in the XZ plane relative to current facing direction.
    *  forward/right are in camera-local space (forward = facing dir, right = perpendicular). */
@@ -480,7 +334,6 @@
   }
 
   function closeCamera() {
-    cancelAIRender();
     releaseCameraPreview();
     cameraPreviewOpen = cameraPlaced = cameraPlacementMode = false;
     previewDragStart = null;
@@ -490,7 +343,6 @@
       cameraHelper = null;
     }
     interiorCamera = null;
-    aiRenderOpen = false; aiRenderResult = null; aiRenderError = null;
     markSceneDirty();
   }
 
@@ -1665,7 +1517,7 @@
     if (!project || project.floors.length === 0) return;
 
     // Use buildWalls for the active floor first (it clears wallGroup)
-    const activeF = project.floors.find(f => f.id === project.activeFloorId) ?? project.floors[0];
+    const activeF = project.floors.find((f: Floor) => f.id === project.activeFloorId) ?? project.floors[0];
     buildWalls(activeF);
 
     const entries = assembleFloorStack(wallGroup, project.floors, activeF.id,
@@ -1863,7 +1715,6 @@
   }
 
   function enterWalkthroughMode() {
-    cancelAIRender();
     cameraPlacementMode = false;
     cameraPreviewOpen = false;
     furniturePlacementMode = false;
@@ -1990,10 +1841,7 @@
   }
 
   onMount(() => {
-    const stopAISettings = openAISettings.subscribe(config => {
-      cancelAIRender();
-      openaiModel = getEffectiveModel(config);
-    });
+
     init();
     viewerMounted = true;
     markSceneDirty();
@@ -2028,8 +1876,7 @@
 
     return () => {
       viewerMounted = false;
-      cancelAIRender();
-      stopAISettings();
+
       stopTextures();
       resizeObs.disconnect();
       unsub();
@@ -2205,12 +2052,7 @@
     <div class="absolute bottom-4 right-4 z-[60] bg-gray-900/95 rounded-xl shadow-2xl backdrop-blur-sm overflow-y-auto max-w-[calc(100vw-2rem)]" style="width: 420px; max-height: calc(100vh - 8rem);">
       <div class="flex items-center justify-between px-3 py-2 border-b border-gray-700">
         <span class="text-white text-sm font-medium">{$t('viewerCamera.title')}</span>
-        <div class="flex gap-2">
-          <button class="text-xs text-blue-400 hover:text-blue-300" onclick={() => { cancelAIRender(); aiRenderOpen = !aiRenderOpen; }}>
-            {aiRenderOpen ? $t('viewerAI.hide') : $t('viewerAI.show')}
-          </button>
-          <button class="text-gray-400 hover:text-white text-lg leading-none" onclick={closeCamera} aria-label={$t('viewerCamera.close')}>✕</button>
-        </div>
+        <button class="text-gray-400 hover:text-white text-lg leading-none" onclick={closeCamera} aria-label={$t('viewerCamera.close')}>✕</button>
       </div>
       <!-- Preview canvas with drag-to-rotate -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2271,110 +2113,7 @@
         </div>
       </div>
 
-      <!-- AI Render Section -->
-      {#if aiRenderOpen}
-        <div class="border-t border-gray-700 px-3 py-3 space-y-2">
-          <div class="text-xs font-medium text-white">{$t('viewerAI.title')}</div>
 
-          <!-- Provider toggle -->
-          <div class="flex rounded-lg overflow-hidden border border-gray-700">
-            <button
-              class="flex-1 text-xs py-1.5 font-medium transition-colors {aiProvider === 'gemini' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-gray-200'}"
-              onclick={() => { cancelAIRender(); aiProvider = 'gemini'; }}
-            >Gemini</button>
-            <button
-              class="flex-1 text-xs py-1.5 font-medium transition-colors {aiProvider === 'openai' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-gray-200'}"
-              onclick={() => { cancelAIRender(); aiProvider = 'openai'; }}
-            >OpenAI</button>
-          </div>
-
-          {#if aiProvider === 'gemini'}
-            <label class="block">
-              <span class="text-[10px] text-gray-400 block mb-1">{$t('viewerAI.model')}</span>
-              <select bind:value={aiModel} disabled={aiRendering} class="w-full bg-gray-800 text-gray-200 text-xs rounded px-1.5 py-1.5 border border-gray-700">
-                {#each AI_MODELS as m}<option value={m.id}>{m.name} — {m.desc}</option>{/each}
-              </select>
-            </label>
-          {:else}
-            <div class="text-gray-200 space-y-2">
-              <p class="text-xs break-all">{$t('viewerAI.provider', { destination: providerDestination() })}</p>
-              <OpenAIModelPicker config={$openAISettings} bind:model={openaiModel} id="render-openai-model" disabled={aiRendering} onchange={saveRenderModel} />
-              <p class="text-xs text-gray-400">{$t('viewerAI.disclosure')}</p>
-            </div>
-          {/if}
-
-          <div class="grid grid-cols-3 gap-2">
-            <label class="block">
-              <span class="text-[10px] text-gray-400 block mb-1">{$t('viewerAI.style')}</span>
-              <select bind:value={aiRenderStyle} class="w-full bg-gray-800 text-gray-200 text-xs rounded px-1.5 py-1 border border-gray-700">
-                {#each STYLE_OPTIONS as opt}<option value={opt}>{aiRenderLabels[opt] ? $t(aiRenderLabels[opt]) : opt}</option>{/each}
-              </select>
-            </label>
-            <label class="block">
-              <span class="text-[10px] text-gray-400 block mb-1">{$t('viewerAI.lighting')}</span>
-              <select bind:value={aiRenderLighting} class="w-full bg-gray-800 text-gray-200 text-xs rounded px-1.5 py-1 border border-gray-700">
-                {#each LIGHTING_OPTIONS as opt}<option value={opt}>{aiRenderLabels[opt] ? $t(aiRenderLabels[opt]) : opt}</option>{/each}
-              </select>
-            </label>
-            <label class="block">
-              <span class="text-[10px] text-gray-400 block mb-1">{$t('viewerAI.mood')}</span>
-              <select bind:value={aiRenderMood} class="w-full bg-gray-800 text-gray-200 text-xs rounded px-1.5 py-1 border border-gray-700">
-                {#each MOOD_OPTIONS as opt}<option value={opt}>{aiRenderLabels[opt] ? $t(aiRenderLabels[opt]) : opt}</option>{/each}
-              </select>
-            </label>
-          </div>
-
-          <label class="block">
-            <span class="text-[10px] text-gray-400 block mb-1">{$t('viewerAI.extra')}</span>
-            <input type="text" bind:value={aiRenderExtra} placeholder={$t('viewerAI.placeholder')}
-              class="w-full bg-gray-800 text-gray-200 text-xs rounded px-2 py-1.5 border border-gray-700 placeholder:text-gray-600" />
-          </label>
-
-          <details class="text-[10px] text-gray-500">
-            <summary class="cursor-pointer hover:text-gray-400">{$t('viewerAI.prompt')}</summary>
-            <p class="mt-1 p-2 bg-gray-800 rounded text-gray-400 leading-relaxed">{buildAIPrompt()}</p>
-          </details>
-
-          <button
-            class="w-full px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            onclick={runAIRender}
-            disabled={aiRendering}
-          >
-            {#if aiRendering}
-              <span class="animate-spin">⏳</span> {$t('viewerAI.rendering')}
-            {:else}
-              {$t('viewerAI.generate')}
-            {/if}
-          </button>
-
-          {#if aiRendering}
-            <button type="button" onclick={cancelAIRender} class="w-full py-2 text-sm text-gray-200 border border-gray-600 rounded-lg">{$t('viewerAI.cancel')}</button>
-          {/if}
-
-          {#if aiRenderError}
-            <div class="bg-red-900/30 border border-red-700 rounded-lg p-3 space-y-2">
-              <div class="text-xs font-medium text-red-400">{$t('viewerAI.failed')}</div>
-              <pre class="text-[10px] text-red-300 whitespace-pre-wrap break-all max-h-32 overflow-y-auto select-all cursor-text font-mono bg-red-950/40 rounded p-2">{aiRenderMessages[aiRenderError] ? $t(aiRenderMessages[aiRenderError]) : aiRenderError}</pre>
-              <button
-                class="text-[10px] text-red-400 hover:text-red-300 underline"
-                onclick={() => { navigator.clipboard.writeText(aiRenderError ?? ''); }}
-              >{$t('viewerAI.copy')}</button>
-            </div>
-          {/if}
-
-          {#if aiRenderResult}
-            <div class="space-y-2">
-              <img src={aiRenderResult} alt={$t('viewerAI.result')} class="w-full rounded-lg" />
-              <button
-                class="w-full px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-500 transition-colors"
-                onclick={downloadAIRender}
-              >
-                {$t('viewerAI.download')}
-              </button>
-            </div>
-          {/if}
-        </div>
-      {/if}
     </div>
   {/if}
 

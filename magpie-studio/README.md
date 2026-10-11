@@ -1,14 +1,10 @@
-# openplan3d
+# Magpie Studio
 
-**Free Open Source 2D/3D Floor Plan Editor**
+**Certified measurements, handoff viewer, and floor plan editor for Magpie Field scans.**
 
-Design floor plans in an intuitive 2D editor, then instantly preview them in a fully navigable 3D view — all in your browser. No account required, no server dependency; your projects stay on your device.
+Design floor plans in an intuitive 2D editor, preview them in a fully navigable 3D view, verify certified LiDAR measurements, and inspect handoff packages from Magpie Field on iOS.
 
-**🌐 Try it live: [app.openplan3d.com](https://app.openplan3d.com/)**
-
-Maintainers: see [NEXT.md](NEXT.md) for the current backlog, verified baseline,
-iPhone release gates and Firebase cost constraints. The [capability reference](FEATURES.md)
-links implementation scope to regression coverage and records known limits.
+> **Notice:** Forked from [laanlabs/openPlan3D](https://github.com/laanlabs/openPlan3D) under the MIT License. See [NOTICE](NOTICE) and [LICENSE](LICENSE).
 
 <p align="center">
   <img src="plan1_2d.jpg" alt="2D Floor Plan View" width="48%">
@@ -295,8 +291,4 @@ see [docs/assistant-shares.md](docs/assistant-shares.md).
    gcloud storage buckets update gs://openplan3d.firebasestorage.app --cors-file=cors.json
    ```
 
-### Local render lab (experimental)
 
-A separate `/render-lab` page tests Blender-prepared GLB scenes with Three.js
-interactive rendering and progressive GPU path tracing. It reads local files
-without uploading them. See [developer setup and limitations](docs/render-lab.md).

@@ -8,7 +8,7 @@
   import { themePreference } from '$lib/stores/theme';
   import DeploymentNotice from '$lib/components/DeploymentNotice.svelte';
   // Self-hosted instances and browser tests can run without sending analytics.
-  onMount(() => { if (window.location.pathname !== '/render-lab' && env.PUBLIC_ENABLE_ANALYTICS !== 'false') void import('$lib/firebase'); });
+  onMount(() => { if (env.PUBLIC_ENABLE_ANALYTICS !== 'false') void import('$lib/firebase'); });
   let { children } = $props();
 </script>
 
