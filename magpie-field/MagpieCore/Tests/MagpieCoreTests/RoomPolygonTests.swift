@@ -126,4 +126,24 @@ final class RoomPolygonTests: XCTestCase {
         let interior = RoomPolygon.computeInteriorArea(vertices: vertices, wallThicknessM: 0.20)
         XCTAssertEqual(interior, 10.64, accuracy: 0.001)
     }
+
+    func testLShapedRoomPolygonDiffersFromAABB() {
+        // L-shaped room: 6m x 4m bounding box with a 3m x 2m cutout.
+        // AABB area = 6m * 4m = 24.0 m^2
+        // Polygon area = 24.0 - 6.0 = 18.0 m^2
+        let w1 = PlanWall(identifier: "w1", dimensions: Vec3(x: 6, y: 2.5, z: 0.15), transform: Mat4.translation(x: 3, y: 0, z: 0))
+        let w2 = PlanWall(identifier: "w2", dimensions: Vec3(x: 2, y: 2.5, z: 0.15), transform: Mat4(elements: [0,0,1,0, 0,1,0,0, -1,0,0,0, 6,0,1,1]))
+        let w3 = PlanWall(identifier: "w3", dimensions: Vec3(x: 3, y: 2.5, z: 0.15), transform: Mat4(elements: [-1,0,0,0, 0,1,0,0, 0,0,-1,0, 4.5,0,2,1]))
+        let w4 = PlanWall(identifier: "w4", dimensions: Vec3(x: 2, y: 2.5, z: 0.15), transform: Mat4(elements: [0,0,1,0, 0,1,0,0, -1,0,0,0, 3,0,3,1]))
+        let w5 = PlanWall(identifier: "w5", dimensions: Vec3(x: 3, y: 2.5, z: 0.15), transform: Mat4(elements: [-1,0,0,0, 0,1,0,0, 0,0,-1,0, 1.5,0,4,1]))
+        let w6 = PlanWall(identifier: "w6", dimensions: Vec3(x: 4, y: 2.5, z: 0.15), transform: Mat4(elements: [0,0,-1,0, 0,1,0,0, 1,0,0,0, 0,0,2,1]))
+
+        let plan = EditedPlan(walls: [w1, w2, w3, w4, w5, w6])
+        let stats = ScanStatistics.from(plan: plan)
+
+        let aabbArea = stats.roomWidth * stats.roomDepth
+        XCTAssertEqual(aabbArea, 24.0, accuracy: 0.1)
+        XCTAssertEqual(stats.floorArea, 18.0, accuracy: 0.1)
+        XCTAssertNotEqual(stats.floorArea, aabbArea, "Floor area for L-shaped room must be polygon shoelace area, not bounding box")
+    }
 }

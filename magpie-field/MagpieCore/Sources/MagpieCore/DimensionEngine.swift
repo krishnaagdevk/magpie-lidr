@@ -174,7 +174,14 @@ public struct DimensionEngine {
             )
         }
 
-        let inTol = criticals.filter { $0.withinTolerance }.count
+        let inTol = criticals.filter { crit in
+            // A critical dimension whose provenance is still .scanned with no documented escape reason
+            // is UNVERIFIED and counts against the gate until taped or escaped.
+            if crit.provenance == .scanned && crit.note.isEmpty {
+                return false
+            }
+            return crit.withinTolerance
+        }.count
         let rate = Float(inTol) / Float(totalCritical)
         // Gate passes only if 100% of critical dimensions are within tolerance
         let result = (inTol == totalCritical) ? "pass" : "fail"

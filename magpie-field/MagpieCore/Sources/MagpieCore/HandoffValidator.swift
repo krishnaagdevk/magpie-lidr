@@ -100,6 +100,34 @@ public struct HandoffValidator {
             try validateTransform(win.transform, for: id)
         }
 
+        // Validate openings
+        for opening in plan.openings {
+            let id = opening.identifier.trimmingCharacters(in: .whitespaces)
+            if id.isEmpty {
+                throw ValidationError("Opening identifier must be non-empty")
+            }
+            if seenIdentifiers.contains(id) {
+                throw ValidationError("Duplicate identifier '\(id)' found across elements")
+            }
+            seenIdentifiers.insert(id)
+
+            guard let parentStory = wallStories[opening.parentIdentifier] else {
+                throw ValidationError("Opening '\(id)' parentIdentifier '\(opening.parentIdentifier)' does not resolve to a wall")
+            }
+            if parentStory != opening.story {
+                throw ValidationError("Opening '\(id)' must be on the same story as its parent wall (opening=\(opening.story), wall=\(parentStory))")
+            }
+
+            if opening.dimensions.x <= 0 || opening.dimensions.y <= 0 {
+                throw ValidationError("Opening '\(id)' dimensions must be positive")
+            }
+            let validKinds = ["opening", "door", "window"]
+            if !validKinds.contains(opening.kind.lowercased()) {
+                throw ValidationError("Opening '\(id)' invalid kind '\(opening.kind)'")
+            }
+            try validateTransform(opening.transform, for: id)
+        }
+
         // Validate objects
         for obj in plan.objects {
             let id = obj.identifier.trimmingCharacters(in: .whitespaces)

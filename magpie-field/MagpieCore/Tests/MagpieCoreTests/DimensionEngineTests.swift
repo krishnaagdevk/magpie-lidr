@@ -202,4 +202,22 @@ final class DimensionEngineTests: XCTestCase {
             XCTAssertNotNil(dim.provenance)
         }
     }
+
+    func testUntapedCriticalDimensionsFailGate() {
+        var plan = EditedPlan()
+        plan.walls = [
+            PlanWall(identifier: "w1", dimensions: Vec3(x: 4.0, y: 2.4, z: 0.15), transform: .identity, story: 0)
+        ]
+        let tags = [
+            KitchenTag(elementId: "w1", category: "base-cabinet-run", label: "Sink Run", fixed: true)
+        ]
+        var measurements = DimensionEngine.generateMeasurements(from: plan, tags: tags)
+        measurements = CriticalDimensionRules.markCritical(plan: plan, measurements: measurements, tags: tags)
+
+        // Critical dimension is still untaped (provenance .scanned, no note) -> gate must fail
+        let val = DimensionEngine.computeValidation(from: measurements, photosCaptured: 2)
+        XCTAssertEqual(val.criticalCount, 1)
+        XCTAssertEqual(val.criticalWithinTolerance, 0)
+        XCTAssertEqual(val.gateResult, "fail")
+    }
 }

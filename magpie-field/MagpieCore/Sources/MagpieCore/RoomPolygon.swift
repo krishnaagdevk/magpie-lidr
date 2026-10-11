@@ -145,25 +145,83 @@ public struct RoomPolygon {
         return abs(sum) * 0.5
     }
 
-    /// Computes interior room area given centerline vertices and wall thickness (metres)
-    /// Parity with web interiorRoomArea convention (4m x 3m with 20cm thickness = 10.64 m²)
+    /// Computes interior room area given centerline vertices and wall thickness (metres).
+    /// Parity with web interiorRoomArea convention (4m x 3m with 20cm thickness = 10.64 m²).
+    /// Offsets each centerline vertex inward by t/2 along the angle bisector (miter) and shoelaces the offset polygon.
     public static func computeInteriorArea(vertices: [Pt2], wallThicknessM: Float) -> Float {
-        let centerlineArea = computeShoelaceArea(vertices: vertices)
-        guard centerlineArea > 0.0, vertices.count >= 3 else { return 0.0 }
+        let n = vertices.count
+        guard n >= 3, wallThicknessM >= 0 else { return 0.0 }
 
-        // Perimeter
-        var perimeterM: Float = 0.0
-        for i in 0..<vertices.count {
-            let next = (i + 1) % vertices.count
-            perimeterM += vertices[i].distance(to: vertices[next])
+        let centerlineArea = computeShoelaceArea(vertices: vertices)
+        guard centerlineArea > 0.0 else { return 0.0 }
+
+        // Determine polygon orientation via signed shoelace area
+        var signedArea: Float = 0.0
+        for i in 0..<n {
+            let next = (i + 1) % n
+            signedArea += (vertices[i].x * vertices[next].y) - (vertices[next].x * vertices[i].y)
+        }
+        signedArea *= 0.5
+        guard abs(signedArea) > 0.0001 else { return 0.0 }
+        let isCCW = signedArea > 0.0
+
+        let d = wallThicknessM / 2.0
+
+        // Inward unit normals for each edge
+        var edgeNormals = [Pt2]()
+        edgeNormals.reserveCapacity(n)
+        for i in 0..<n {
+            let next = (i + 1) % n
+            let dx = vertices[next].x - vertices[i].x
+            let dy = vertices[next].y - vertices[i].y
+            let len = (dx * dx + dy * dy).squareRoot()
+            if len <= 0.00001 {
+                edgeNormals.append(Pt2.zero)
+                continue
+            }
+            let ux = dx / len
+            let uy = dy / len
+            // Inward normal: if CCW, rotate +90° (-uy, ux); if CW, rotate -90° (uy, -ux)
+            let nx = isCCW ? -uy : uy
+            let ny = isCCW ? ux : -ux
+            edgeNormals.append(Pt2(x: nx, y: ny))
         }
 
-        // Standard deduction for convex polygon interior:
-        // Area_interior = Area_centerline - (Perimeter * thickness / 2) + (corners adjustment = thickness^2)
-        // For a 4x3 rect: 12 - (14 * 0.10) + (0.2^2) = 12 - 1.4 + 0.04 = 10.64 m²!
-        let deduction = (perimeterM * (wallThicknessM / 2.0)) - (wallThicknessM * wallThicknessM)
-        let interior = centerlineArea - deduction
-        return max(0.0, interior)
+        // Offset vertices along angle bisector (miter)
+        var offsetVertices = [Pt2]()
+        offsetVertices.reserveCapacity(n)
+        for i in 0..<n {
+            let prev = (i - 1 + n) % n
+            let nPrev = edgeNormals[prev]
+            let nCurr = edgeNormals[i]
+
+            let dot = nPrev.x * nCurr.x + nPrev.y * nCurr.y
+            let denom = 1.0 + dot
+
+            var mx: Float
+            var my: Float
+            if denom > 0.05 {
+                mx = d * (nPrev.x + nCurr.x) / denom
+                my = d * (nPrev.y + nCurr.y) / denom
+            } else {
+                mx = d * nCurr.x
+                my = d * nCurr.y
+            }
+
+            // Clamp miter length to prevent self-intersections or extreme spikes
+            let miterLen = (mx * mx + my * my).squareRoot()
+            let maxMiter = 2.0 * wallThicknessM
+            if miterLen > maxMiter && miterLen > 0.0001 {
+                let scale = maxMiter / miterLen
+                mx *= scale
+                my *= scale
+            }
+
+            offsetVertices.append(Pt2(x: vertices[i].x + mx, y: vertices[i].y + my))
+        }
+
+        let interiorArea = computeShoelaceArea(vertices: offsetVertices)
+        return min(max(0.0, interiorArea), centerlineArea)
     }
 
     /// Analyzes the walls of a plan for closure, perimeter coverage, and floor area

@@ -157,7 +157,23 @@ public struct ScanStatistics: Sendable, Codable, Equatable {
         stats.roomHeight = max(0, maxY - minY)
         stats.roomDepth = max(0, maxZ - minZ)
         stats.wallArea = totalWallArea
-        stats.floorArea = stats.roomWidth * stats.roomDepth
+
+        // WO-10: Compute floor area via RoomPolygon shoelace formula when closed within tolerance
+        let aabbArea = stats.roomWidth * stats.roomDepth
+        let segments = RoomPolygon.extractSegments(from: plan)
+        let chain = RoomPolygon.orderSegmentsIntoChain(segments)
+        var isClosed = false
+        if let first = chain.first, let last = chain.last, chain.count >= 3 {
+            let gap = last.end.distance(to: first.start)
+            isClosed = gap <= RoomPolygon.closureToleranceM
+        }
+
+        if isClosed {
+            let vertices = chain.map { $0.start }
+            stats.floorArea = RoomPolygon.computeShoelaceArea(vertices: vertices)
+        } else {
+            stats.floorArea = aabbArea
+        }
         stats.volume = stats.floorArea * stats.roomHeight
 
         return stats

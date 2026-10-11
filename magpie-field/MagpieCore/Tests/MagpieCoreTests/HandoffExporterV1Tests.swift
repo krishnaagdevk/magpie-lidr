@@ -165,4 +165,32 @@ final class HandoffExporterV1Tests: XCTestCase {
         let decoded = try JSONDecoder().decode(EditedPlan.self, from: data)
         XCTAssertEqual(plan, decoded)
     }
+
+    func testValidationOpenings() throws {
+        var plan = EditedPlan()
+        plan.walls = [
+            PlanWall(identifier: "w1", dimensions: Vec3(x: 4, y: 2.4, z: 0.12), transform: .identity, story: 0)
+        ]
+        plan.openings = [
+            PlanOpening(identifier: "op1", parentIdentifier: "w1", dimensions: Vec3(x: 1.0, y: 2.1, z: 0.12), transform: .identity, story: 0, kind: "opening")
+        ]
+        // Valid opening should pass
+        XCTAssertNoThrow(try HandoffValidator.validate(plan: plan))
+
+        // Orphan opening (parent wall does not exist)
+        plan.openings = [
+            PlanOpening(identifier: "op-orphan", parentIdentifier: "w-nonexistent", dimensions: Vec3(x: 1.0, y: 2.1, z: 0.12), transform: .identity, story: 0, kind: "opening")
+        ]
+        XCTAssertThrowsError(try HandoffValidator.validate(plan: plan)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("does not resolve to a wall"))
+        }
+
+        // Invalid kind
+        plan.openings = [
+            PlanOpening(identifier: "op-badkind", parentIdentifier: "w1", dimensions: Vec3(x: 1.0, y: 2.1, z: 0.12), transform: .identity, story: 0, kind: "invalid-kind")
+        ]
+        XCTAssertThrowsError(try HandoffValidator.validate(plan: plan)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("invalid kind"))
+        }
+    }
 }
