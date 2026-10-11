@@ -187,4 +187,65 @@ public struct DimensionEngine {
             photosCaptured: photosCaptured
         )
     }
+
+    public static func computeValidation(
+        measurements: [Measurement],
+        photosCaptured: Int = 0
+    ) -> ValidationBlock {
+        computeValidation(from: measurements, photosCaptured: photosCaptured)
+    }
+
+    public static func applyTapeMeasurement(
+        to measurements: [Measurement],
+        id: String,
+        tapeMm: Int?,
+        toleranceMm: Int? = nil,
+        escapeReason: String? = nil
+    ) -> [Measurement] {
+        var copy = measurements
+        guard let index = copy.firstIndex(where: { $0.id == id }) else { return copy }
+        var m = copy[index]
+        if let tol = toleranceMm {
+            m.toleranceMm = tol
+        }
+        if let tape = tapeMm {
+            recordTapeMeasurement(in: &copy, id: id, tapeValueMm: tape, note: escapeReason ?? m.note)
+            if let tol = toleranceMm {
+                copy[index].toleranceMm = tol
+                copy[index].withinTolerance = copy[index].deviationMm <= tol
+            }
+        } else if let reason = escapeReason, !reason.isEmpty {
+            m.note = reason
+            m.withinTolerance = true
+            copy[index] = m
+        }
+        return copy
+    }
+
+    public static func computeBiasFactor(measurements: [Measurement]) -> Float? {
+        let tapeMeasurements = measurements.filter { $0.provenance == .tape && $0.valueScannedMm > 0 }
+        guard !tapeMeasurements.isEmpty else { return nil }
+        let totalTape = tapeMeasurements.reduce(0) { $0 + Double($1.valueMm) }
+        let totalScanned = tapeMeasurements.reduce(0) { $0 + Double($1.valueScannedMm) }
+        guard totalScanned > 0 else { return nil }
+        return Float(totalTape / totalScanned)
+    }
+
+    public static func applyCalibration(
+        to measurements: [Measurement],
+        biasFactor: Float
+    ) -> [Measurement] {
+        measurements.map { m in
+            var updated = m
+            if m.provenance != .tape {
+                updated.valueMm = ScanStatistics.toMm(Float(m.valueScannedMm) / 1000.0 * biasFactor)
+                updated.provenance = .calibrated
+                let dev = abs(updated.valueMm - updated.valueScannedMm)
+                updated.deviationMm = dev
+                updated.withinTolerance = dev <= updated.toleranceMm
+            }
+            return updated
+        }
+    }
 }
+

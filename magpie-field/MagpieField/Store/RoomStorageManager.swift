@@ -126,6 +126,47 @@ public final class RoomStorageManager: ObservableObject {
         }
     }
 
+    public func saveSiteRecord(_ record: SiteCaptureRecord) {
+        if let idx = savedCaptures.firstIndex(where: { $0.id == record.id }) {
+            savedCaptures[idx].syncState = record.syncState
+            savedCaptures[idx].checksum = record.checksum
+            saveIndex()
+        } else {
+            let capture = SiteCapture(
+                id: record.id,
+                siteId: record.siteId,
+                roomLabel: record.roomLabel,
+                workerName: record.workerName,
+                capturedAt: record.capturedAt,
+                localDirectoryUrl: "",
+                syncState: record.syncState,
+                checksum: record.checksum,
+                packageSizeBytes: record.packageSize
+            )
+            savedCaptures.insert(capture, at: 0)
+            saveIndex()
+        }
+    }
+
+    public func fetchAllSiteRecords() -> [SiteCaptureRecord] {
+        return savedCaptures.map { c in
+            SiteCaptureRecord(
+                id: c.id,
+                siteId: c.siteId,
+                roomLabel: c.roomLabel,
+                capturedAt: c.capturedAt,
+                workerName: c.workerName,
+                syncState: c.syncState,
+                checksum: c.checksum,
+                packageSize: c.packageSizeBytes
+            )
+        }
+    }
+
+    public func deleteSiteRecord(id: String) {
+        deleteCapture(id: id)
+    }
+
     private func saveIndex() {
         let indexUrl = baseStorageDirectory.appendingPathComponent("library_index.json")
         if let data = try? encoder.encode(savedCaptures) {

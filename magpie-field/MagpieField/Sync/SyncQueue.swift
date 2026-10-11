@@ -41,59 +41,70 @@ public final class SyncQueue: ObservableObject {
         drainQueue()
     }
 
+    public func enqueue(
+        _ record: SiteCaptureRecord,
+        completion: ((Bool, String?, String?) -> Void)? = nil
+    ) {
+        RoomStorageManager.shared.saveSiteRecord(record)
+        drainQueue()
+        completion?(true, nil, nil)
+    }
+
     public func drainQueue() {
         guard isOnline, !isSyncing else { return }
         isSyncing = true
 
         Task {
             let storage = RoomStorageManager.shared
-            let pending = storage.savedCaptures.filter { $0.syncState == .pending || $0.syncState == .uploading }
-            pendingCount = pending.count
-
-            guard let target = pending.first else {
-                isSyncing = false
-                return
-            }
-
             let client = SyncClient(baseUrl: URL(string: AppSettings.shared.backendUrl)!)
 
-            do {
-                // Read local package files
-                let dirUrl = URL(fileURLWithPath: target.localDirectoryUrl)
-                let planData = try Data(contentsOf: dirUrl.appendingPathComponent("plan.json"))
-                let measurementsData = try Data(contentsOf: dirUrl.appendingPathComponent("measurements.json"))
+            while true {
+                let pending = storage.savedCaptures.filter { $0.syncState == .pending || $0.syncState == .uploading }
+                pendingCount = pending.count
 
-                let planStr = String(data: planData, encoding: .utf8) ?? "{}"
-                let measurementsStr = String(data: measurementsData, encoding: .utf8) ?? "{}"
+                guard let target = pending.first else { break }
 
-                let manifest = PackageManifest(
-                    title: "\(target.siteId) - \(target.roomLabel)",
-                    siteId: target.siteId,
-                    capturedAt: target.capturedAt
-                )
+                do {
+                    // Read local package files
+                    let dirUrl = URL(fileURLWithPath: target.localDirectoryUrl)
+                    let planData = try Data(contentsOf: dirUrl.appendingPathComponent("plan.json"))
+                    let measurementsData = try Data(contentsOf: dirUrl.appendingPathComponent("measurements.json"))
 
-                let package = MagpiePackage(
-                    manifest: manifest,
-                    planJson: planStr,
-                    measurementsJson: measurementsStr
-                )
+                    let planStr = String(data: planData, encoding: .utf8) ?? "{}"
+                    let measurementsStr = String(data: measurementsData, encoding: .utf8) ?? "{}"
 
-                let response = try await client.uploadHandoff(
-                    package: package,
-                    authToken: AppSettings.shared.authToken
-                )
+                    let manifest = PackageManifest(
+                        title: "\(target.siteId) - \(target.roomLabel)",
+                        siteId: target.siteId,
+                        capturedAt: target.capturedAt
+                    )
 
-                // Update sync state only on checksum confirmation
-                if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {
-                    storage.savedCaptures[idx].syncState = .confirmed
-                    storage.savedCaptures[idx].checksum = response.checksum
-                }
-            } catch {
-                if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {
-                    storage.savedCaptures[idx].syncState = .pending
+                    let package = MagpiePackage(
+                        manifest: manifest,
+                        planJson: planStr,
+                        measurementsJson: measurementsStr
+                    )
+
+                    let response = try await client.uploadHandoff(
+                        package: package,
+                        authToken: AppSettings.shared.authToken
+                    )
+
+                    // Update sync state only on checksum confirmation
+                    if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {
+                        storage.savedCaptures[idx].syncState = .confirmed
+                        storage.savedCaptures[idx].checksum = response.checksum
+                    }
+                } catch {
+                    if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {
+                        storage.savedCaptures[idx].syncState = .failed
+                    }
+                    break
                 }
             }
 
+            let remaining = storage.savedCaptures.filter { $0.syncState == .pending || $0.syncState == .uploading }
+            pendingCount = remaining.count
             isSyncing = false
         }
     }

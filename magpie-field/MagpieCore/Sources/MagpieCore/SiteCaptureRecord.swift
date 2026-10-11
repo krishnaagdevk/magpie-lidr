@@ -28,6 +28,24 @@ public struct SiteCaptureRecord: Codable, Equatable, Identifiable, Sendable {
     public var uploadAttempts: Int
     public var lastAttemptAt: String?
 
+    public typealias SyncStatus = SyncState
+
+    public var syncStatus: SyncState {
+        get { syncState }
+        set { syncState = newValue }
+    }
+
+    public var attemptCount: Int {
+        get { uploadAttempts }
+        set { uploadAttempts = newValue }
+    }
+
+    public var packageData: Data?
+
+    public var createdAt: Date {
+        ISO8601DateFormatter().date(from: capturedAt) ?? Date()
+    }
+
     public init(
         id: String = UUID().uuidString,
         siteId: String,
@@ -52,6 +70,29 @@ public struct SiteCaptureRecord: Codable, Equatable, Identifiable, Sendable {
         self.errorMessage = errorMessage
         self.uploadAttempts = uploadAttempts
         self.lastAttemptAt = lastAttemptAt
+        self.packageData = nil
+    }
+
+    public init(
+        id: String = UUID().uuidString,
+        siteId: String,
+        workerName: String,
+        roomLabel: String = "Kitchen",
+        syncStatus: SyncState = .pending,
+        packageData: Data? = nil
+    ) {
+        self.id = id
+        self.siteId = siteId
+        self.roomLabel = roomLabel
+        self.capturedAt = ISO8601DateFormatter().string(from: Date())
+        self.workerName = workerName
+        self.syncState = syncStatus
+        self.checksum = nil
+        self.packageSize = Int64(packageData?.count ?? 0)
+        self.errorMessage = nil
+        self.uploadAttempts = 0
+        self.lastAttemptAt = nil
+        self.packageData = packageData
     }
 
     /// State machine transitions

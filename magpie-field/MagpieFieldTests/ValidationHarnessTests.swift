@@ -14,10 +14,10 @@ final class ValidationHarnessTests: XCTestCase {
     /// Scenario 1: Standard 4m x 3m rectangular kitchen with base and wall cabinet runs.
     func testStandardRectangularKitchen() {
         var plan = EditedPlan()
-        plan.walls.append(PlanWall(identifier: "w-north", dimensions: PlanVector3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,1.5,1]))
-        plan.walls.append(PlanWall(identifier: "w-south", dimensions: PlanVector3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,-1.5,1]))
-        plan.walls.append(PlanWall(identifier: "w-east", dimensions: PlanVector3(x: 3.0, y: 2.4, z: 0.15), transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, 2.0,1.2,0,1]))
-        plan.walls.append(PlanWall(identifier: "w-west", dimensions: PlanVector3(x: 3.0, y: 2.4, z: 0.15), transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, -2.0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w-north", dimensions: Vec3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,1.5,1]))
+        plan.walls.append(PlanWall(identifier: "w-south", dimensions: Vec3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,-1.5,1]))
+        plan.walls.append(PlanWall(identifier: "w-east", dimensions: Vec3(x: 3.0, y: 2.4, z: 0.15), transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, 2.0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w-west", dimensions: Vec3(x: 3.0, y: 2.4, z: 0.15), transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, -2.0,1.2,0,1]))
 
         let tags = [
             KitchenTag(elementId: "w-north", category: "base-cabinet-run", label: "Sink & Cooktop Run", fixed: true),
@@ -43,7 +43,7 @@ final class ValidationHarnessTests: XCTestCase {
     /// Scenario 2: L-shaped kitchen with large dimensional deviation exceeding tolerance (Amber/Red band).
     func testLShapedKitchenDeviationFailsGate() {
         var plan = EditedPlan()
-        plan.walls.append(PlanWall(identifier: "w-main", dimensions: PlanVector3(x: 5.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w-main", dimensions: Vec3(x: 5.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
 
         let tags = [KitchenTag(elementId: "w-main", category: "base-cabinet-run", label: "Main Run", fixed: true)]
         var measurements = DimensionEngine.generateMeasurements(from: plan, tags: tags)
@@ -60,8 +60,8 @@ final class ValidationHarnessTests: XCTestCase {
     /// Scenario 3: Systematic scale bias calibration.
     func testSystematicBiasCalibration() {
         var plan = EditedPlan()
-        plan.walls.append(PlanWall(identifier: "w1", dimensions: PlanVector3(x: 3.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
-        plan.walls.append(PlanWall(identifier: "w2", dimensions: PlanVector3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w1", dimensions: Vec3(x: 3.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w2", dimensions: Vec3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
 
         var measurements = DimensionEngine.generateMeasurements(from: plan)
         // Tape measures 1.01x larger consistently
@@ -80,7 +80,7 @@ final class ValidationHarnessTests: XCTestCase {
     /// Scenario 4: Inaccessible dimension escape record passes validation when justified.
     func testEscapedDimensionValidation() {
         var plan = EditedPlan()
-        plan.walls.append(PlanWall(identifier: "w-blocked", dimensions: PlanVector3(x: 3.5, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w-blocked", dimensions: Vec3(x: 3.5, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
 
         let tags = [KitchenTag(elementId: "w-blocked", category: "base-cabinet-run", label: "Blocked wall", fixed: true)]
         var measurements = DimensionEngine.generateMeasurements(from: plan, tags: tags)
@@ -100,7 +100,7 @@ final class ValidationHarnessTests: XCTestCase {
     /// Scenario 5: Full package export and handoff validation.
     func testFullPackageExportAndValidation() {
         var plan = EditedPlan()
-        plan.walls.append(PlanWall(identifier: "w1", dimensions: PlanVector3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
+        plan.walls.append(PlanWall(identifier: "w1", dimensions: Vec3(x: 4.0, y: 2.4, z: 0.15), transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2,0,1]))
         let measurements = DimensionEngine.generateMeasurements(from: plan)
         let metadata = CaptureMetadata(siteId: "SITE-101", workerName: "Alex", roomLabel: "Kitchen", scannedAt: "2026-10-10T12:00:00Z")
 

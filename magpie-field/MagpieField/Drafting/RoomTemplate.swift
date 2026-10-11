@@ -40,25 +40,25 @@ public struct RoomTemplate {
             // North (Y+)
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, hMeters/2, wMeters/2, 1]
             ))
             // South (Y-)
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, hMeters/2, -wMeters/2, 1]
             ))
             // East (X+)
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, lMeters/2, hMeters/2, 0, 1]
             ))
             // West (X-)
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, -lMeters/2, hMeters/2, 0, 1]
             ))
 
@@ -72,37 +72,37 @@ public struct RoomTemplate {
             // Wall 1: Main North
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, hMeters/2, wMeters/2, 1]
             ))
             // Wall 2: East
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, lMeters/2, hMeters/2, 0, 1]
             ))
             // Wall 3: South partial
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters - cutLMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters - cutLMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, cutLMeters/2, hMeters/2, -wMeters/2, 1]
             ))
             // Wall 4: Inner North
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: cutWMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: cutWMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, cutLMeters - lMeters/2, hMeters/2, cutWMeters/2 - wMeters/2, 1]
             ))
             // Wall 5: Inner West
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: cutLMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: cutLMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, -lMeters/2 + cutLMeters/2, hMeters/2, cutWMeters - wMeters/2, 1]
             ))
             // Wall 6: Main West
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters - cutWMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters - cutWMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, -lMeters/2, hMeters/2, cutWMeters/2, 1]
             ))
 
@@ -113,22 +113,22 @@ public struct RoomTemplate {
             // Baseline box with room section
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, hMeters/2, wMeters/2, 1]
             ))
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: lMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: lMeters, y: hMeters, z: thMeters),
                 transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0, hMeters/2, -wMeters/2, 1]
             ))
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, lMeters/2, hMeters/2, 0, 1]
             ))
             plan.walls.append(PlanWall(
                 identifier: UUID().uuidString,
-                dimensions: PlanVector3(x: wMeters, y: hMeters, z: thMeters),
+                dimensions: Vec3(x: wMeters, y: hMeters, z: thMeters),
                 transform: [0,0,1,0, 0,1,0,0, -1,0,0,0, -lMeters/2, hMeters/2, 0, 1]
             ))
         }

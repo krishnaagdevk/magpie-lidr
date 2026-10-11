@@ -27,6 +27,18 @@ public struct PlanWall: Codable, Equatable, Identifiable {
         self.transform = transform
         self.story = story
     }
+
+    public init(
+        id: String,
+        transform: Mat4,
+        dimensions: Vec3,
+        story: Int = 0
+    ) {
+        self.identifier = id
+        self.dimensions = dimensions
+        self.transform = transform
+        self.story = story
+    }
 }
 
 public struct PlanOpening: Codable, Equatable, Identifiable {
@@ -131,6 +143,22 @@ public struct PlanStory: Codable, Equatable {
     }
 }
 
+public struct ValidationResult: Codable, Equatable, Sendable {
+    public var isValid: Bool
+    public var errors: [String]
+    public var warnings: [String]
+
+    public init(
+        isValid: Bool = true,
+        errors: [String] = [],
+        warnings: [String] = []
+    ) {
+        self.isValid = isValid
+        self.errors = errors
+        self.warnings = warnings
+    }
+}
+
 public struct EditedPlan: Codable, Equatable {
     public var openplanPrepared: Bool
     public var openplanHandoffVersion: Int
@@ -141,6 +169,11 @@ public struct EditedPlan: Codable, Equatable {
     public var objects: [PlanObject]
     public var sections: [PlanSection]
     public var stories: [PlanStory]
+    public var kitchenTags: [KitchenTagItem]
+
+    public var dimensions: [Measurement] {
+        DimensionEngine.generateMeasurements(from: self)
+    }
 
     public init(
         openplanPrepared: Bool = true,
@@ -151,7 +184,8 @@ public struct EditedPlan: Codable, Equatable {
         openings: [PlanOpening] = [],
         objects: [PlanObject] = [],
         sections: [PlanSection] = [],
-        stories: [PlanStory] = []
+        stories: [PlanStory] = [],
+        kitchenTags: [KitchenTagItem] = []
     ) {
         self.openplanPrepared = openplanPrepared
         self.openplanHandoffVersion = openplanHandoffVersion
@@ -162,6 +196,25 @@ public struct EditedPlan: Codable, Equatable {
         self.objects = objects
         self.sections = sections
         self.stories = stories
+        self.kitchenTags = kitchenTags
+    }
+
+    public mutating func addWall(_ wall: PlanWall) {
+        walls.append(wall)
+    }
+
+    public mutating func updateWall(id: String, newDimensions: Vec3) {
+        if let index = walls.firstIndex(where: { $0.identifier == id }) {
+            walls[index].dimensions = newDimensions
+        }
+    }
+
+    public mutating func deleteWall(id: String) {
+        walls.removeAll(where: { $0.identifier == id })
+    }
+
+    public mutating func removeObject(id: String) {
+        objects.removeAll(where: { $0.identifier == id })
     }
 }
 

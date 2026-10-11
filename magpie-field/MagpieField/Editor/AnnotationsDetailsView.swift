@@ -18,7 +18,7 @@ public struct AnnotationsDetailsView: View {
                 Section("Critical Dimensions") {
                     ForEach(viewModel.editedPlan.dimensions.filter { $0.critical }) { dim in
                         HStack {
-                            Text(dim.name)
+                            Text(dim.label)
                             Spacer()
                             Text("\(dim.valueMm) mm")
                                 .font(.system(.body, design: .monospaced))
@@ -30,7 +30,7 @@ public struct AnnotationsDetailsView: View {
                 Section("Advisory Scanned Dimensions") {
                     ForEach(viewModel.editedPlan.dimensions.filter { !$0.critical }) { dim in
                         HStack {
-                            Text(dim.name)
+                            Text(dim.label)
                             Spacer()
                             Text("\(dim.valueMm) mm (approx)")
                                 .foregroundColor(.secondary)

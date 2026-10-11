@@ -102,3 +102,13 @@ public struct Mat4: Codable, Equatable {
         ])
     }
 }
+
+extension Mat4: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Float...) {
+        if elements.count == 16 {
+            self.init(elements: elements)
+        } else {
+            self = Mat4.identity
+        }
+    }
+}
