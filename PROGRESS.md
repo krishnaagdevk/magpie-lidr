@@ -28,7 +28,7 @@ Live task ledger. Updated after every completed task.
 | **Last updated** | 2026-10-10 |
 | **Environment** | Windows laptop (Lenovo Legion). Entire codebase authored end-to-end, all tests passing. |
 
-**Phase 2 Hard Gate Passed.** Phase 0 (core), Phase 2 (engine), Phase 4 (models/views), Phase 5 (tape gate), Phase 6 (exporter/package), Phase 7 (record/sync), Phase 8 (studio), Phase 9 (geometry/area cross-check), Phase 12 (drafting & takeoff) are complete.
+**Phase 2 Hard Gate Passed.** Phase 0 (core), Phase 2 (engine), Phase 4 (models/views), Phase 5 (tape gate), Phase 6 (exporter/package), Phase 7 (record/sync), Phase 8 (studio), Phase 9 (geometry/area cross-check) are complete.
 
 ---
 
@@ -251,13 +251,11 @@ RoomPolygonTests.swift passes (4/4 tests).
 $ pnpm test in magpie-studio: 129 test files passed, 1192 tests passed.
 $ npm run check in magpie-studio: 0 errors, 0 warnings.
 
-T-501, T-404, T-607, T-701..T-706, T-Drafting, T-Takeoff  2026-10-10
+T-501, T-404, T-607, T-701..T-706  2026-10-10
 Implemented all remaining app flows and modules:
 - Flow: TapeGateView.swift (T-501), ExportFlowView.swift, LibraryView.swift, SiteSetupView.swift (T-404).
 - Export: UsdzExporter.swift, FloorPlanExporter.swift (T-607), PackageBuilder.swift (T-606).
 - Storage & Sync: RoomStorageManager.swift (T-701), Encryption.swift (T-702), SyncQueue.swift (T-704), SyncClient.swift (T-705).
-- Drafting: RoomTemplate.swift, ManualScanFlowView.swift, CornerPlotScene.swift, BlueprintImportView.swift, ScaleCalibration.swift.
-- Takeoff: TakeoffCalculator.swift (computes countertop runs, cabinet lineal metres, backsplash area, baseboard length).
 All vitest suites (129 files, 1192 tests) and svelte-check (0 errors, 0 warnings) verified green.
 ```
 
@@ -267,7 +265,7 @@ All vitest suites (129 files, 1192 tests) and svelte-check (0 errors, 0 warnings
 
 | Date | Task(s) | Change |
 |---|---|---|
-| 2026-10-10 | T-501, T-404, T-607, T-701..T-706, M10-M12 | Implemented TapeGateView, ExportFlowView, LibraryView, RoomTemplate, ManualScanFlowView, CornerPlotScene, BlueprintImportView, ScaleCalibration, TakeoffCalculator. All 129 test files & svelte-check pass. |
+| 2026-10-10 | T-501, T-404, T-607, T-701..T-706 | Implemented TapeGateView, ExportFlowView, LibraryView, SiteSetupView, RoomStorageManager, SyncQueue, SyncClient. All 129 test files & svelte-check pass. |
 | 2026-10-10 | T-901, T-904 | Implemented RoomPolygon in MagpieCore; verified closure, coverage analysis, and interior area calculation parity with web CAD engine. |
 | 2026-10-10 | T-401..T-403, T-606, T-703 | Implemented KitchenTag, KitchenCatalog, CaptureMetadata, PackageBuilder, and SiteCaptureRecord in MagpieCore. |
 | 2026-10-10 | T-805 | Added server-side per-site access control (siteAccess.ts, tests/site-access.test.ts 5/5 pass). |

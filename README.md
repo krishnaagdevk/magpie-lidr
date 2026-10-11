@@ -33,7 +33,6 @@ Magpie LiDAR is a precision-first measurement and architectural drafting platfor
 │  • Interactive 2D floor plan drafting & 3D WebGL walkthrough           │
 │  • Dimension Table Panel (distinguishing physical tape vs scan data)   │
 │  • Millimeter & Metric/Imperial unit formatting engine                 │
-│  • Automated material takeoffs (countertops, cabinets, baseboards)     │
 │  • Vector CAD exports (DXF / SVG / 3D GLB / PDF)                       │
 │  • Multi-tenant per-site access control & handoff quotas               │
 └────────────────────────────────────────────────────────────────────────┘
@@ -57,8 +56,6 @@ magpie_lidr/
 │   │   ├── Editor/                     # FloorPlanScene (SpriteKit), SurfaceDetails, AdjustMeasurement
 │   │   ├── Flow/                       # SiteSetupView, ScanFlowView, ReviewFlowView, TapeGateView,
 │   │   │                               # ExportFlowView, LibraryView
-│   │   ├── Drafting/                   # RoomTemplate, ManualScanFlowView, CornerPlotScene, ScaleCalibration
-│   │   ├── Takeoff/                    # TakeoffCalculator (countertop, cabinet run & backsplash takeoffs)
 │   │   ├── Store/                      # RoomStorageManager (AES.GCM encrypted records)
 │   │   ├── Sync/                       # SyncQueue (NWPathMonitor offline queue) & SyncClient
 │   │   └── Resources/Fixtures/         # Verified handoff-plan.json & handoff-roomplan.json
