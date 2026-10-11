@@ -90,10 +90,10 @@ public final class SyncQueue: ObservableObject {
                         authToken: AppSettings.shared.authToken
                     )
 
-                    // Update sync state only on checksum confirmation
+                    // Update sync state only on verified code confirmation
                     if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {
                         storage.savedCaptures[idx].syncState = .confirmed
-                        storage.savedCaptures[idx].checksum = response.checksum
+                        storage.savedCaptures[idx].checksum = response.code
                     }
                 } catch {
                     if let idx = storage.savedCaptures.firstIndex(where: { $0.id == target.id }) {

@@ -120,6 +120,13 @@ final class MagpieCoreExtendedTests: XCTestCase {
         XCTAssertTrue(pkg.manifest.files.contains("measurements.json"))
         XCTAssertTrue(pkg.planJson.contains("openplanHandoffVersion"))
         XCTAssertTrue(pkg.measurementsJson.contains("SITE-PKG-01"))
+
+        let zipData = try PackageBuilder.exportZip(package: pkg)
+        XCTAssertGreaterThan(zipData.count, 22)
+        XCTAssertEqual(zipData[0], 0x50)
+        XCTAssertEqual(zipData[1], 0x4b)
+        XCTAssertEqual(zipData[2], 0x03)
+        XCTAssertEqual(zipData[3], 0x04)
     }
 
     // MARK: - T-703 SiteCaptureRecord Tests

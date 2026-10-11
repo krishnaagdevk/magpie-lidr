@@ -59,13 +59,16 @@
     showUndoHistory = !showUndoHistory;
   }
 
+  import { readPackageZip } from '$lib/utils/projectPackageZip';
+  import { loadMeasurementsPayload } from '$lib/stores/measurements';
+
   // Mobile (< md): BuildPanel becomes an off-canvas drawer toggled by the Tools FAB.
   let buildPanelOpen = $state(false);
   // Close the drawer once the user has picked a tool / item so the canvas is usable
   selectedTool.subscribe(() => { if (buildPanelOpen) buildPanelOpen = false; });
   placingFurnitureId.subscribe((id) => { if (id && buildPanelOpen) buildPanelOpen = false; });
 
-  // iOS capture handoff (?import=CODE → fetch RoomPlan JSON from Firebase Storage inbox)
+  // iOS capture handoff (?import=CODE → fetch RoomPlan JSON or .magpie package from Firebase Storage inbox)
   let importingCapture = $state(false);
   let importError = $state<string | CaptureImportError | null>(null);
   let loadError = $state<string | null>(null);
@@ -75,23 +78,71 @@
     catch (error) { loadError = storageErrorMessage(error); }
   }
 
-  /** Fetch a RoomPlan capture uploaded by the iOS app and open it as a new project. Returns true on success. */
+  /** Fetch a RoomPlan capture or .magpie bundle uploaded by the iOS app and open it as a new project. Returns true on success. */
   async function importCaptureFromCode(code: string): Promise<boolean> {
     importingCapture = true;
     try {
-      const url = `https://firebasestorage.googleapis.com/v0/b/openplan3d.firebasestorage.app/o/inbox%2F${code}.json?alt=media`;
+      const magpieUrl = `https://firebasestorage.googleapis.com/v0/b/openplan3d.firebasestorage.app/o/inbox%2F${code}.magpie?alt=media`;
+      const jsonUrl = `https://firebasestorage.googleapis.com/v0/b/openplan3d.firebasestorage.app/o/inbox%2F${code}.json?alt=media`;
+
       let res: Response;
+      let isMagpie = false;
       try {
-        res = await fetch(url);
+        res = await fetch(magpieUrl);
+        if (res.ok) {
+          isMagpie = true;
+        } else if (res.status === 404) {
+          res = await fetch(jsonUrl);
+        }
       } catch {
         throw new CaptureImportError('captureImport.network');
       }
+
       if (res.status === 404) {
         throw new CaptureImportError('captureImport.missing', { code });
       }
       if (!res.ok) {
         throw new CaptureImportError('captureImport.http', { status: res.status });
       }
+
+      if (isMagpie) {
+        let files: Record<string, Uint8Array>;
+        try {
+          const buffer = await res.arrayBuffer();
+          files = readPackageZip(new Uint8Array(buffer));
+        } catch {
+          throw new CaptureImportError('captureImport.format');
+        }
+
+        if (files['measurements.json']) {
+          const measurementsStr = new TextDecoder('utf-8').decode(files['measurements.json']);
+          loadMeasurementsPayload(measurementsStr);
+        }
+
+        let project: any;
+        if (files['plan.json']) {
+          const planStr = new TextDecoder('utf-8').decode(files['plan.json']);
+          const planData = JSON.parse(planStr);
+          if (isRoomPlanJson(planData)) {
+            project = createProjectFromRoomPlan(planData, `Room Capture ${code}`);
+          } else if (planData.floors) {
+            project = planData;
+          } else {
+            project = createProjectFromRoomPlan(planData, `Room Capture ${code}`);
+          }
+        } else if (files['roomplan.json']) {
+          const rpStr = new TextDecoder('utf-8').decode(files['roomplan.json']);
+          project = createProjectFromRoomPlan(JSON.parse(rpStr), `Room Capture ${code}`);
+        } else {
+          throw new CaptureImportError('captureImport.format');
+        }
+
+        loadProject(project);
+        await autoSave();
+        replaceState(`${base}/editor?id=${project.id}`, page.state);
+        return true;
+      }
+
       let data: any;
       try {
         data = await res.json();

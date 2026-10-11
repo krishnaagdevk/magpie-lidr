@@ -1,80 +1,63 @@
-# iPhone → web geometry handoff, version 1
+# Magpie Handoff Bundle Specification (Format v1)
 
-The iPhone app's **Export Editable Plan (JSON)** and **Open in OpenPlan3D** use the
-same geometry payload. Local JSON exchange needs no Firebase upload. Import it
-using the web toolbar's **Export → Import JSON** or **Build → Import RoomPlan**.
+## Overview
+A `.magpie` handoff bundle is an uncompressed or standard ZIP archive transferred from the Magpie Field iOS application to Magpie Studio via `POST /api/handoffs`.
 
-This is a documented extension of RoomPlan JSON for one-way geometry exchange,
-not the complete bidirectional project/attachment format proposed in the roadmap.
-Apple's `version` field remains independent of `openplanHandoffVersion: 1`.
-Unversioned Apple captures and older `openplanPrepared` exports remain accepted.
-An unknown handoff version is rejected before replacing the current project.
+## File Structure
+```
+package.magpie (ZIP)
+├── manifest.json         # Package metadata, site identifier, and file manifest
+├── plan.json             # Canonical EditedPlan JSON (walls, openings, rooms)
+├── measurements.json     # Certified measurements and gate validation payload
+├── model.usdz            # (Optional) Exported 3D LiDAR room mesh
+└── photos/               # (Optional) Captured photo attachments
+    ├── photo-1.jpg
+    └── photo-2.jpg
+```
 
-## Coordinates and identity
+## Archive Constraints
+- **Compression**: Uncompressed (method 0 / Stored) or standard Deflate.
+- **Max Package Size**: 64 MiB (`MAGPIE_PACKAGE_LIMITS.maxBytes`).
+- **Path Security**: UTF-8 filenames, maximum 200 characters, no directory traversal (`../`), no root slashes.
 
-- Lengths are metres in the payload and centimetres in the web model. Fractional
-  centimetres are retained, with conversion rounded to eight decimal places.
-- Transforms are column-major 4×4 matrices. Translation is at indices 12–14.
-  The local X direction is `(transform[0], transform[2])` on the ground plane.
-  RoomPlan X maps to web X; RoomPlan Z maps to web Y. Furniture headings use
-  `atan2(transform[2], transform[0])`, converted from radians to degrees.
-- Surface/object `identifier` values survive import. They must be unique.
-  Openings reference a wall via `parentIdentifier` on the same `story`.
-- Integer `story` values select floors; absent values mean zero. `stories` carries
-  `{ index, name }` records, including intentionally empty floors. Gaps and negative
-  levels are retained. This does not introduce configurable physical floor heights.
+## Required Documents
 
-## Supported geometry and presentation fields
+### 1. `manifest.json`
+```json
+{
+  "format": "magpie-package",
+  "version": 1,
+  "producer": "ios",
+  "title": "Kitchen Scan 101",
+  "siteId": "SITE-A12",
+  "capturedAt": "2026-10-10T14:30:00Z",
+  "files": [
+    "manifest.json",
+    "plan.json",
+    "measurements.json",
+    "model.usdz"
+  ]
+}
+```
 
-| Payload | Web result |
-| --- | --- |
-| Wall `dimensions: [length, height, thickness]` and transform | Independent start/end coordinates, height and thickness; zero/missing raw-scan thickness falls back to 15 cm |
-| Door `style: single/double/sliding/patio` | Single/double/sliding; patio uses the existing sliding-door representation |
-| Door `hingeLeft` | True places the hinge at the wall-start jamb, web `swingDirection: right`; false uses the wall-end jamb |
-| Door `opensInward` | True opens toward the left-hand wall normal `(-dy, dx)`; web `flipSide: false` |
-| Window `style: fixed/sliding` | Fixed/sliding window |
-| Window `sillHeight` | Explicit height above its floor in metres; absent values derive from opening and parent-wall vertical transforms |
-| Apple `openings` | Doorway passages, with no door leaf |
-| Object dimensions and transform | Size, position and rotation; existing category-to-catalog mapping remains in use |
-| Section `center`, `label`, `displayName`, `color` | Detected room association, custom room name and color |
+### 2. `plan.json`
+Canonical JSON representation of `EditedPlan` containing stories, walls, dimensions, transforms, and rooms.
 
-The iPhone exporter sends resolved opening styles and orientation, including the
-defaults. Older prepared exports omitted the default hinge: the importer treats
-that as the iOS wall-start hinge. Raw Apple captures without orientation extensions
-retain the existing default. `openplanPrepared: true` disables automatic geometry
-straightening by default; explicit `openplanImportOptions` or dialog choices win.
+### 3. `measurements.json`
+Canonical JSON representation of `MeasurementsPayload` containing:
+- `measurementsVersion`: 1
+- `siteId`: Site identifier
+- `dimensions`: Array of scanned and tape-verified measurement items
+- `validation`: Hard gate validation results (`gateResult`, `criticalCount`, `passRate`)
 
-Photos, tracing images, per-object notes, costs, wall materials and room ceiling
-overrides are not imported into equivalent editable web fields in this batch.
-Keep the iPhone session/full dataset for these. Patio-specific glazing is not
-modeled. Geometry JSON contains no media uploads or new persistent cloud state.
-
-## Validation and recovery
-
-All RoomPlan surfaces are validated before building/loading a project: finite
-dimensions/transforms, valid identifiers and parent references, integral floors,
-room anchors, supported styles and typed import choices. A malformed element
-rejects the whole import with a visible error, leaving the current project open.
-
-A raw-capture ZIP must contain exactly one `room.json`. A dataset with `plan.json`
-is rejected with instructions to export Editable Plan JSON: importing its raw
-`room.json` would silently discard the iPhone edits. Full dataset archives remain
-useful as local backups; they are not a supported edited-project web import yet.
-
-iOS accepts missing legacy optional fields but rejects damaged present arrays or
-wrongly typed fields. A valid empty edited plan remains empty. Existing unreadable
-edited files block editing/export/handoff instead of falling back to an older scan.
-The editor offers Retry, Export Original File and, when a scan exists, Recover
-Original Scan. Recovery must first copy the exact edited bytes to
-`plan-recovery-<UUID>.json` beside the original. The original is replaced only when
-the user later saves the recovered plan. Unknown material/style strings survive
-native save/reload; an unsupported opening style is rejected by the web importer.
-
-## Contract fixtures
-
-`tests/fixtures/handoff-plan.json` is a synthetic native document and
-`tests/fixtures/handoff-roomplan.json` its expected handoff. Identical copies live
-in the iOS test bundle. Swift tests compare the actual exporter against every
-fixture key/value; web tests assert the resulting geometry, floor names, empty
-floor, opening appearance, room metadata and furniture orientation. Any future
-format change must update both repositories' fixtures and compatibility tests.
+## Transfer Protocol
+1. **Upload**: Client sends `POST /api/handoffs` (or `POST /api/handoffs/:siteId`) with header `Content-Type: application/zip` and `x-magpie-package: true`. Optional `Authorization: Bearer <token>`.
+2. **Response**: Server responds with HTTP 201:
+   ```json
+   {
+     "code": "8-char-alphanumeric-code",
+     "reuseUntil": "2026-10-11T14:30:00.000Z",
+     "packageType": "magpie-package"
+   }
+   ```
+3. **Retrieval**: Editor fetches the package at `inbox/{code}.magpie` or through `?import={code}`.
