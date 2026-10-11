@@ -66,10 +66,10 @@ magpie_lidr/
 │   │   ├── lib/
 │   │   │   ├── components/sidebar/     # DimensionTablePanel, PropertiesPanel, HistoryPanel
 │   │   │   ├── stores/                 # measurements.ts, settings.ts, project.ts
-│   │   │   ├── server/                 # siteAccess.ts, handoffUpload.ts, handoffQuota.ts
+│   │   │   ├── server/                 # handoffUpload.ts, handoffQuota.ts
 │   │   │   ├── utils/                  # roomplanImport.ts, roomplanValidation.ts, length.ts
 │   │   │   └── editor/                 # 2D canvas engine, 3D WebGL renderer, GLTF/DXF export
-│   │   └── routes/api/handoffs/        # Multipart ZIP upload & site-access endpoints
+│   │   └── routes/api/handoffs/        # Multipart ZIP upload endpoint
 │   └── tests/                          # 129 test files / 1,192 automated vitest unit tests
 │
 ├── PROGRESS.md                         # 52-task verification ledger and evidence receipts

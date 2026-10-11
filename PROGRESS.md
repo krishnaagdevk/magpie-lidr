@@ -124,7 +124,7 @@ Live task ledger. Updated after every completed task.
 | T-802 | Baseline import verification | x | tests/roomplan-import.test.ts: 28/28 tests passed on untouched fork | None |
 | T-803 | Dimension table panel | x | DimensionTablePanel.svelte, measurements.ts store, TopBar integration; tests/dimension-table.test.ts (5/5 passed). | None |
 | T-804 | Extend the upload route | x | handoffUpload.ts, handoffQuota.ts extended for measurements, usdz, photos; tests/handoff-upload-extended.test.ts (3/3 passed). | None |
-| T-805 | Per-site access control | x | siteAccess.ts, server-side enforcement on GET/POST handoffs; tests/site-access.test.ts (5/5 passed). | None |
+| T-805 | Per-site access control | — | Deferred pending backend auth/storage architecture (Decision D6). Insecure mock removed per WO-7. | Blocked on D6 |
 | T-806 | Millimetre display unit | x | settings.ts supports 'millimetres'; tests/length-formatting.test.ts passes (13/13). | None |
 
 ## Phase 9 — Validation
@@ -236,9 +236,7 @@ $ pnpm exec vitest run tests/handoff-upload-extended.test.ts
 3/3 tests passed.
 
 T-805  2026-10-10
-Implemented server-side per-site access control in siteAccess.ts and routes/api/handoffs/[id]/+server.ts.
-$ pnpm exec vitest run tests/site-access.test.ts
-5/5 tests passed.
+Deferred: Insecure client-header mock in siteAccess.ts removed per WO-7. Pending architecture decision D6 for production backend auth and persistence.
 
 T-401, T-402, T-403, T-606, T-703  2026-10-10
 Implemented Pure Swift models in MagpieCore: KitchenTag (T-401), KitchenCatalog (T-402), CaptureMetadata (T-403), PackageBuilder (T-606), SiteCaptureRecord (T-703).
@@ -268,7 +266,7 @@ All vitest suites (129 files, 1192 tests) and svelte-check (0 errors, 0 warnings
 | 2026-10-10 | T-501, T-404, T-607, T-701..T-706 | Implemented TapeGateView, ExportFlowView, LibraryView, SiteSetupView, RoomStorageManager, SyncQueue, SyncClient. All 129 test files & svelte-check pass. |
 | 2026-10-10 | T-901, T-904 | Implemented RoomPolygon in MagpieCore; verified closure, coverage analysis, and interior area calculation parity with web CAD engine. |
 | 2026-10-10 | T-401..T-403, T-606, T-703 | Implemented KitchenTag, KitchenCatalog, CaptureMetadata, PackageBuilder, and SiteCaptureRecord in MagpieCore. |
-| 2026-10-10 | T-805 | Added server-side per-site access control (siteAccess.ts, tests/site-access.test.ts 5/5 pass). |
+| 2026-10-10 | T-805 | Deferred pending Decision D6; removed insecure mock (WO-7). |
 | 2026-10-10 | T-804 | Extended upload route for measurements.json, model.usdz, photos/ (tests/handoff-upload-extended.test.ts 3/3 pass). |
 | 2026-10-10 | T-803 | Implemented DimensionTablePanel.svelte & measurements store with visual distinction for tape vs scanned values (tests/dimension-table.test.ts 5/5 pass). |
 | 2026-10-10 | T-806 | Added 'millimetres' display unit setting to settings.ts and extended length-formatting.test.ts (13/13 pass). |
