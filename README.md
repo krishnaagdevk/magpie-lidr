@@ -158,10 +158,10 @@ Prerequisites: **macOS with Xcode 15+** (for compilation and physical device dep
 
 ## 📊 Verification & Test Coverage
 
-- **Web CAD Studio Tests:** `129 passed (129 files, 1,192 tests passed)`
+- **Web CAD Studio Tests:** `122 passed (122 files, 1,126 tests passed)`
 - **Svelte Diagnostics:** `0 errors, 0 warnings`
 - **Floor Area Math Parity:** Verified exact parity between iOS Shoelace polygon computation and Web CAD engine ($4\text{m} \times 3\text{m}$ room with $20\text{cm}$ wall thickness produces $10.64\text{ m}^2$).
-- **Task Ledger:** All 52 tasks in [`PROGRESS.md`](PROGRESS.md) marked completed with explicit verification receipts.
+- **Task Ledger:** Web CAD Studio tasks 100% verified green in [`PROGRESS.md`](PROGRESS.md); native iOS targets fully authored to contract and blocked on macOS + Xcode environment for binary compilation and physical device deployment.
 
 ---
 
