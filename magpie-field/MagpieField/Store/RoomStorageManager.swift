@@ -51,13 +51,13 @@ public final class RoomStorageManager: ObservableObject {
         try fileManager.createDirectory(at: siteDir, withIntermediateDirectories: true)
 
         // 1. Save Edited Plan (plan.json)
-        let planData = try HandoffExporterV1.export(plan: editedPlan)
+        let planData = try HandoffExporterV1.exportJSONData(from: editedPlan)
         let planUrl = siteDir.appendingPathComponent("plan.json")
         try planData.write(to: planUrl)
         try StorageEncryption.applyCompleteProtection(to: planUrl)
 
         // 2. Save Measurements (measurements.json)
-        let measurementsData = try MeasurementTableExporter.export(payload: measurements)
+        let measurementsData = try MeasurementTableExporter.exportJSONData(payload: measurements)
         let measurementsUrl = siteDir.appendingPathComponent("measurements.json")
         try measurementsData.write(to: measurementsUrl)
         try StorageEncryption.applyCompleteProtection(to: measurementsUrl)
