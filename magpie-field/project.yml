@@ -1,0 +1,84 @@
+name: MagpieField
+
+options:
+  bundleIdPrefix: com.magpie
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+  defaultConfig: Debug
+
+packages:
+  MagpieCore:
+    path: MagpieCore
+
+targets:
+  MagpieField:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: MagpieField
+        excludes:
+          - "**/*.template"
+          - "Info.plist"
+          - "PrivacyInfo.xcprivacy"
+          - "Resources/**"
+      - path: MagpieField/Resources
+        type: resources
+      - path: MagpieField/PrivacyInfo.xcprivacy
+        type: resources
+    dependencies:
+      - package: MagpieCore
+        product: MagpieCore
+    settings:
+      base:
+        PRODUCT_NAME: MagpieField
+        PRODUCT_BUNDLE_IDENTIFIER: com.magpie.field
+        INFOPLIST_FILE: MagpieField/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "5.9"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: "1.0.0"
+        ENABLE_PREVIEWS: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+
+  MagpieFieldTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: MagpieFieldTests
+    dependencies:
+      - target: MagpieField
+      - package: MagpieCore
+        product: MagpieCore
+    settings:
+      base:
+        PRODUCT_NAME: MagpieFieldTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.magpie.field.tests
+        SWIFT_VERSION: "5.9"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/MagpieField.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MagpieField"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+schemes:
+  MagpieField:
+    shared: true
+    build:
+      targets:
+        MagpieField: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MagpieFieldTests
+  MagpieFieldTests:
+    shared: true
+    build:
+      targets:
+        MagpieFieldTests: all
+    test:
+      config: Debug
+      targets:
+        - MagpieFieldTests
